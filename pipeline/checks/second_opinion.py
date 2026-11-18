@@ -38,7 +38,80 @@ Gợi ý
 from ..common import WARN, Issue, iou_xywh, parse_yolo_line  # noqa: F401
 from ..model_cache import get_preds  # noqa: F401
 
+CHECK = "second_opinion"
+
+
+def _numbered(ds, stem):
+    out = []
+    for item in ds.read_label_lines(stem) or []:
+        out.append(tuple(item) if isinstance(item, (tuple, list)) else (len(out) + 1, item))
+    return out
+
 
 def run(ds, cfg, preds=None):
-    # TODO
-    raise NotImplementedError("check second_opinion chưa làm")
+    c = cfg["second_opinion"]
+    conf_min, min_area, fp_conf = c["conf"], c["min_area_px"], c["fp_conf"]
+    iou_missing, iou_match, iou_loose = c["iou_missing"], c["iou_match"], c["iou_loose"]
+    n_cls = len(ds.classes)
+
+    if preds is None:
+        preds = get_preds(ds, cfg, "checker")
+
+    issues = []
+    for p in ds.image_files():
+        stem = p.stem
+        if stem not in preds or not ds.label_path(stem).exists():
+            continue
+        try:
+            W, H = ds.image_size(stem)
+        except Exception:
+            W = H = None
+        L = ds.valid_boxes(stem)
+        all_preds = [(int(r[0]), r[1], tuple(r[2:6])) for r in preds[stem]]
+
+        # P: dự đoán đủ tin cậy và đủ lớn
+        for cls, conf, box in all_preds:
+            if conf < conf_min:
+                continue
+            if W and H and (box[2] * W) * (box[3] * H) < min_area:
+                continue
+            cands = []
+            for lcls, *lbox in L:
+                v = iou_xywh(box, tuple(lbox))
+                if v >= iou_missing:
+                    cands.append((int(lcls), v))
+            if not cands:
+                issues.append(Issue(CHECK, WARN, "POSSIBLE_MISSING", stem,
+                                    "model thấy vật mà nhãn không có box", extra={"conf": conf}))
+                continue
+            same = [v for lc, v in cands if lc == cls]
+            other = [v for lc, v in cands if lc != cls]
+            if same:
+                best = max(same)
+                if best < iou_loose:
+                    issues.append(Issue(CHECK, WARN, "POSSIBLE_LOOSE_BOX", stem,
+                                        f"đúng vật nhưng box lỏng/lệch (IoU={best:.3f})",
+                                        extra={"conf": conf, "iou": best}))
+            elif other and max(other) >= iou_match:
+                best = max(other)
+                issues.append(Issue(CHECK, WARN, "POSSIBLE_WRONG_CLASS", stem,
+                                    f"đúng vật nhưng khác lớp (IoU={best:.3f})",
+                                    extra={"conf": conf, "iou": best}))
+
+        # POSSIBLE_FALSE_POS: so với MỌI dự đoán conf >= fp_conf (không lọc diện tích)
+        fp = [b for _, conf, b in all_preds if conf >= fp_conf]
+        for ln, raw in _numbered(ds, stem):
+            if not raw.strip():
+                continue
+            try:
+                lcls, cx, cy, w, h = parse_yolo_line(raw)
+            except (ValueError, TypeError):
+                continue
+            if lcls < 0 or lcls >= n_cls or w <= 0 or h <= 0:
+                continue
+            best = max((iou_xywh((cx, cy, w, h), b) for b in fp), default=0.0)
+            if best < iou_missing:
+                issues.append(Issue(CHECK, WARN, "POSSIBLE_FALSE_POS", stem,
+                                    "box nhãn không khớp vật nào model thấy",
+                                    line=ln, extra={"iou": best}))
+    return issues

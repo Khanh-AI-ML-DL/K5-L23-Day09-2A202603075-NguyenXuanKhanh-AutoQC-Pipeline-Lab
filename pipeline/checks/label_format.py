@@ -21,9 +21,71 @@ Gợi ý
 - `iou_xywh(a, b)` có sẵn trong common.py.
 - Ngưỡng nằm trong `cfg["label_format"]` — đừng viết cứng số vào code.
 """
+
 from ..common import ERROR, WARN, Issue, iou_xywh, parse_yolo_line  # noqa: F401
+
+CHECK = "label_format"
+
+
+def _numbered(ds, stem):
+    """Danh sách (số dòng gốc, nội dung) của file nhãn; [] nếu không có file."""
+    out = []
+    for item in ds.read_label_lines(stem) or []:
+        out.append(tuple(item) if isinstance(item, (tuple, list)) else (len(out) + 1, item))
+    return out
 
 
 def run(ds, cfg):
-    # TODO: duyệt từng file nhãn, từng dòng
-    raise NotImplementedError("check label_format chưa làm")
+    c = cfg["label_format"]
+    tol, dup_iou = c["overflow_tol"], c["dup_box_iou"]
+    min_px, max_frac = c["min_box_px"], c["max_box_frac"]
+    n_cls = len(ds.classes)
+    issues = []
+
+    def add(code, sev, stem, ln, msg, extra=None):
+        issues.append(Issue(CHECK, sev, code, stem, msg, line=ln, extra=extra or {}))
+
+    for p in ds.image_files():
+        stem = p.stem
+        rows = _numbered(ds, stem)
+        if not rows:
+            continue
+        try:
+            W, H = ds.image_size(stem)
+        except Exception:
+            W = H = None
+
+        kept = []  # (lớp, box) các dòng hình học hợp lệ đã gặp, để dò DUP_BOX
+        for ln, raw in rows:
+            if not raw.strip():
+                continue
+            try:
+                cls, cx, cy, w, h = parse_yolo_line(raw)
+            except (ValueError, TypeError):
+                add("BAD_FORMAT", ERROR, stem, ln, f"dòng nhãn không đúng 5 cột số: {raw.strip()!r}")
+                continue
+            if cls < 0 or cls >= n_cls:
+                add("BAD_CLASS_ID", ERROR, stem, ln, f"id lớp {cls} ngoài 0..{n_cls - 1}")
+                continue
+            if w <= 0 or h <= 0:
+                add("BOX_ZERO", ERROR, stem, ln, f"box rỗng (w={w}, h={h})")
+                continue
+
+            overflow = max(0.0, -(cx - w / 2), (cx + w / 2) - 1, -(cy - h / 2), (cy + h / 2) - 1)
+            if overflow > tol:
+                add("BOX_OUT_OF_IMAGE", ERROR, stem, ln, f"box tràn ảnh {overflow:.4f}", {"overflow": overflow})
+
+            box = (cx, cy, w, h)
+            for pcls, pbox in kept:
+                if pcls == cls:
+                    v = iou_xywh(pbox, box)
+                    if v > dup_iou:
+                        add("DUP_BOX", ERROR, stem, ln, f"box lặp với một dòng trước (IoU={v:.3f})", {"iou": v})
+                        break
+            kept.append((cls, box))
+
+            if W and H and min(w * W, h * H) < min_px:
+                add("BOX_TINY", WARN, stem, ln, f"box quá nhỏ ({min(w * W, h * H):.1f}px)")
+            if w * h > max_frac:
+                add("BOX_HUGE", WARN, stem, ln, f"box chiếm {w * h:.1%} ảnh")
+    return issues
