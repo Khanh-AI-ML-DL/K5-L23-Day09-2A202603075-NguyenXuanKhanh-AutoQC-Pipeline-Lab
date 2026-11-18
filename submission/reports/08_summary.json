@@ -1,19 +1,19 @@
 {
   "verdict": {
-    "decision": "Hold",
+    "decision": "Release",
     "n_errors": 0,
-    "n_warn_images": 60,
-    "n_images": 205,
-    "warn_ratio": 0.2927,
+    "n_warn_images": 13,
+    "n_images": 193,
+    "warn_ratio": 0.0674,
     "reasons": [
-      "Không còn lỗi bắt buộc, nhưng 60/205 ảnh còn cảnh báo (tỉ lệ 29.27% >= ngưỡng 10.00%): chuyển người duyệt.",
+      "Không còn lỗi bắt buộc; 13/193 ảnh còn cảnh báo (tỉ lệ 6.74% < ngưỡng 10.00%): có thể phát hành.",
       "Đã bỏ qua cảnh báo của các ảnh người đã duyệt (80 ảnh)."
     ]
   },
   "reviewed": 80,
   "budget": 80,
-  "seconds": 2.0,
+  "seconds": 1.9,
   "exported": "/Users/nguyenxuankhanh/Documents/GitHub/K5-L23-Day09-2A202603075-NguyenXuanKhanh-AutoQC-Pipeline-Lab/submission/export/clean_v1",
-  "config_sha1": "b44ba77a8a036c1cad78e0c28ed1db6ba7404125",
+  "config_sha1": "2d76848893d62f92a3c35dabb0dde384f214a9e3",
   "review_sim_sha1": "7988ca22827f780a7043a2300490e679a1697154"
 }
