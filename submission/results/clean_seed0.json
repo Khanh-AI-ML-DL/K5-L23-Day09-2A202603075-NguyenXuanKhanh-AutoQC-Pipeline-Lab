@@ -3,21 +3,21 @@
   "seed": 0,
   "epochs": 20,
   "model": "yolo26n.pt",
-  "device": "cpu",
-  "map50": 0.7347,
-  "map50_95": 0.5183,
-  "precision": 0.7732,
-  "recall": 0.6544,
+  "device": "0",
+  "map50": 0.7357,
+  "map50_95": 0.5214,
+  "precision": 0.7819,
+  "recall": 0.6487,
   "ap50_per_class": {
-    "car": 0.7666,
-    "person": 0.8189,
-    "truck": 0.6692,
-    "bus": 0.6842
+    "car": 0.7511,
+    "person": 0.8241,
+    "truck": 0.6634,
+    "bus": 0.7041
   },
-  "manifest_sha1": "1c207f61d287bf00d6c498ce7969eff82652dc65",
-  "config_sha1": "b44ba77a8a036c1cad78e0c28ed1db6ba7404125",
+  "manifest_sha1": "b50eb7b08a77b954b891d5fc72f00f0b05b6e44d",
+  "config_sha1": "2d76848893d62f92a3c35dabb0dde384f214a9e3",
   "batch": 16,
   "imgsz": 640,
-  "train_images": 205,
-  "seconds": 3363.9
+  "train_images": 193,
+  "seconds": 87.5
 }

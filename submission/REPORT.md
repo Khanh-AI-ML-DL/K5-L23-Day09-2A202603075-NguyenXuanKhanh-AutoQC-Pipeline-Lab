@@ -72,10 +72,12 @@ Lấy từ `02_error_list_v1` (gom theo mã lỗi). Cột "ai sửa": **máy** (
 ## 5. Train: raw vs clean (tùy chọn, chấm riêng)
 Chưa train: ghi "chưa chạy" và lý do, rồi bỏ qua phần còn lại của mục này. Nếu đã train: dán bảng từ `submission/results/comparison.md` (model, epoch, seed, số ảnh train mỗi biến thể).
 
-| biến thể | #ảnh train | số seed | map50 (TB ± độ lệch) | map50_95 (TB ± độ lệch) | precision (TB ± độ lệch) | recall (TB ± độ lệch) |
+ biến thể | #ảnh train | số seed | map50 (TB ± độ lệch) | map50_95 (TB ± độ lệch) | precision (TB ± độ lệch) | recall (TB ± độ lệch) |
 |---|---|---|---|---|---|---|
-| raw | 224 | 2 | 0.722 ± 0.013 | 0.509 ± 0.019 | 0.751 ± 0.055 | 0.642 ± 0.001 |
-| clean | 205 | 2 | 0.718 ± 0.023 | 0.507 ± 0.016 | 0.735 ± 0.054 | 0.632 ± 0.032 |
+| raw | 224 | 2 | 0.726 ± 0.000 | 0.512 ± 0.004 | 0.764 ± 0.061 | 0.649 ± 0.028 |
+| clean | 193 | 2 | 0.730 ± 0.008 | 0.517 ± 0.007 | 0.767 ± 0.021 | 0.642 ± 0.009 |
+
+Chênh mAP50 (clean − raw) = **+0.004**.
 
 - Chênh mAP50 (clean − raw) = **-0.004**.**độ lệch chuẩn giữa các seed**; 
 - kết luận **trung thực** (nằm trong nhiễu thì nói là chưa kết luận được); ≥ 2 giả thuyết giải thích (ảnh trùng/rò rỉ test trong `raw`, nhãn máy còn lại trong `clean`, test chỉ 100 ảnh…) và cách kiểm. : Chưa đủ cơ sở để khẳng định Clean tốt hơn Raw hoặc Raw tốt hơn Clean.
